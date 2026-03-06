@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+requests
+beautifulsoup4
+playwright
+pydantic
+langchain
+openai
+python-multipart
+websockets
