@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Shopping Agent</title>
+    <style>
+      :root {
+        --bg: #0f172a;
+        --card: #111827;
+        --muted: #94a3b8;
+        --text: #e2e8f0;
+        --accent: #22c55e;
+        --accent-dark: #16a34a;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: Inter, Arial, sans-serif;
+        background: linear-gradient(180deg, #0b1220, #0f172a);
+        color: var(--text);
+      }
+
+      .container {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 24px 16px 48px;
+      }
+
+      h1 {
+        margin: 0 0 8px;
+        font-size: 30px;
+      }
+
+      .sub {
+        margin: 0 0 20px;
+        color: var(--muted);
+      }
+
+      form {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+
+      input {
+        flex: 1;
+        background: #0b1324;
+        border: 1px solid #1e293b;
+        color: var(--text);
+        border-radius: 10px;
+        padding: 12px 14px;
+        font-size: 15px;
+      }
+
+      button {
+        border: 0;
+        border-radius: 10px;
+        padding: 12px 18px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      #searchBtn {
+        color: #04110a;
+        background: var(--accent);
+      }
+
+      #searchBtn:hover {
+        background: var(--accent-dark);
+      }
+
+      .status {
+        color: #cbd5e1;
+        margin-bottom: 14px;
+        min-height: 24px;
+      }
+
+      .answer {
+        background: rgba(17, 24, 39, 0.8);
+        border: 1px solid #1f2937;
+        border-radius: 12px;
+        padding: 14px;
+        margin-bottom: 20px;
+      }
+
+      .answer strong {
+        color: #86efac;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 16px;
+      }
+
+      .card {
+        background: var(--card);
+        border: 1px solid #1f2937;
+        border-radius: 14px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .card img {
+        width: 100%;
+        height: 165px;
+        object-fit: cover;
+      }
+
+      .card-body {
+        padding: 12px;
+      }
+
+      .title {
+        font-size: 15px;
+        margin: 0 0 8px;
+      }
+
+      .meta {
+        font-size: 13px;
+        color: var(--muted);
+        margin-bottom: 8px;
+      }
+
+      .desc {
+        font-size: 13px;
+        color: #cbd5e1;
+        margin-bottom: 12px;
+      }
+
+      .pill {
+        display: inline-block;
+        font-size: 12px;
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: #1f2937;
+        color: #cbd5e1;
+        margin-right: 6px;
+        margin-bottom: 8px;
+      }
+
+      .buy {
+        display: inline-block;
+        margin-top: 8px;
+        text-decoration: none;
+        color: #052e16;
+        background: #86efac;
+        font-weight: 700;
+        padding: 10px 12px;
+        border-radius: 9px;
+      }
+
+      .buy:hover {
+        background: #4ade80;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>AI Shopping Agent</h1>
+      <p class="sub">
+        Product pucho (jaise: "best earbuds under 3000"), result ke saath buy link aur details milenge.
+      </p>
+
+      <form id="searchForm">
+        <input
+          id="queryInput"
+          type="text"
+          placeholder="e.g. gaming laptop, smartwatch, running shoes..."
+          required
+        />
+        <button id="searchBtn" type="submit">Search</button>
+      </form>
+
+      <div class="status" id="status">Ready.</div>
+      <div class="answer" id="answerBox">Aapka response yahan dikhega.</div>
+      <div class="grid" id="products"></div>
+    </div>
+
+    <script>
+      const form = document.getElementById("searchForm");
+      const queryInput = document.getElementById("queryInput");
+      const statusNode = document.getElementById("status");
+      const answerBox = document.getElementById("answerBox");
+      const productsNode = document.getElementById("products");
+
+      function renderProducts(products, bestId) {
+        productsNode.innerHTML = "";
+        products.forEach((p) => {
+          const card = document.createElement("article");
+          card.className = "card";
+          card.innerHTML = `
+            <img src="${p.image_url}" alt="${p.title}" loading="lazy" />
+            <div class="card-body">
+              <h3 class="title">${p.title}</h3>
+              <div class="meta">${p.brand} • ${p.category}</div>
+              <div class="desc">${p.description}</div>
+              <span class="pill">${p.price_label}</span>
+              <span class="pill">Rating: ${p.rating}/5</span>
+              <span class="pill">${p.delivery}</span>
+              ${
+                p.id === bestId
+                  ? '<span class="pill" style="background:#14532d;color:#bbf7d0;">Best Pick</span>'
+                  : ""
+              }
+              <br />
+              <a class="buy" href="${p.buy_link}" target="_blank" rel="noopener noreferrer">
+                Buy Now
+              </a>
+            </div>
+          `;
+          productsNode.appendChild(card);
+        });
+      }
+
+      async function searchProducts(query) {
+        statusNode.textContent = "Searching...";
+        const res = await fetch(`/search?query=${encodeURIComponent(query)}`);
+        if (!res.ok) {
+          throw new Error("Search request failed");
+        }
+        return res.json();
+      }
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const query = queryInput.value.trim();
+        if (!query) return;
+
+        try {
+          const data = await searchProducts(query);
+          const bestId = data.best ? data.best.id : null;
+          answerBox.innerHTML = `<strong>Agent:</strong> ${data.answer}`;
+          renderProducts(data.products || [], bestId);
+          statusNode.textContent = `Done. ${data.products?.length || 0} products shown.`;
+        } catch (error) {
+          statusNode.textContent = "Error: Search failed.";
+          answerBox.textContent = "Kuch issue aa gaya, please dobara try karein.";
+          productsNode.innerHTML = "";
+        }
+      });
+
+      (function connectWebsocket() {
+        const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+        const ws = new WebSocket(`${protocol}://${window.location.host}/ws`);
+
+        ws.onmessage = (event) => {
+          statusNode.textContent = event.data;
+        };
+
+        ws.onopen = () => {
+          setInterval(() => {
+            if (ws.readyState === WebSocket.OPEN) {
+              ws.send("ping");
+            }
+          }, 20000);
+        };
+      })();
+    </script>
+  </body>
+</html>
